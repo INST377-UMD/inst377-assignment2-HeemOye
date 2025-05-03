@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Stocks - Class Activities</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/annyang/2.6.1/annyang.min.js"></script>
+</head>
+<body>
+
+  <h1>INST377 - Assignment 2 Activities</h1>
+
+  <nav>
+    <a href="home.html">Home</a>
+    <a href="stocks.html">Stocks</a>
+    <a href="dogs.html">Dogs</a>
+  </nav>
+
+  <h1>📈 Let's Lookup Some Stock Charts!</h1>
+
+  <form id="stockForm">
+    <input type="text" id="tickerInput" placeholder="Enter Ticker (e.g. AAPL)" required />
+    <select id="dayRange">
+      <option value="30">30 Days</option>
+      <option value="60">60 Days</option>
+      <option value="90">90 Days</option>
+    </select>
+    <button type="submit">Show Chart</button>
+  </form>
+
+  <div id="chartContainer" style="display: none;">
+    <canvas id="stockChart" width="600" height="400"></canvas>
+  </div>  
+
+  <h2>🔥 Top 5 Reddit Stocks</h2>
+  <table id="redditTable" style="display: table">
+    <thead>
+      <tr>
+        <th>Ticker</th>
+        <th>Comments Count</th>
+        <th>Sentiment</th>
+      </tr>
+    </thead>
+    <tbody id="redditBody"></tbody>
+  </table>
+
+  <div id="audioBox">
+    <h3>🎙 Voice Commands</h3>
+    <ul>
+      <li><strong>"Hello"</strong> – Alerts "Hello World"</li>
+      <li><strong>"Change the color to &lt;color&gt;"</strong> – Changes background color</li>
+      <li><strong>"Navigate to &lt;page&gt;"</strong> – Navigates to selected page</li>
+      <li><strong>"Lookup &lt;stock&gt;"</strong> – Loads a stock chart</li>
+    </ul>
+    <button class="audio-button" onclick="annyang.start()">Turn On Audio</button>
+    <button class="audio-button" onclick="annyang.abort()">Turn Off Audio</button>
+  </div>
+
+  <script>
+    const ctx = document.getElementById('stockChart').getContext('2d');
+    let chart;
+    const API_KEY = 'h6fksaD1hFMlEVl9c0hZdvpJ82CgMuT6';
+
+    async function fetchStockData(ticker, days) {
+      const end = Math.floor(Date.now() / 1000);
+      const start = end - (days * 24 * 60 * 60);
+      const url = `https://api.polygon.io/v2/aggs/ticker/${ticker.toUpperCase()}/range/1/day/${start * 1000}/${end * 1000}?adjusted=true&sort=asc&limit=120&apiKey=${API_KEY}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      return data.results || [];
+    }
+
+    function convertEpoch(ms) {
+      return new Date(ms).toLocaleDateString();
+    }
+
+    function renderChart(data, label) {
+      const labels = data.map(item => convertEpoch(item.t));
+      const prices = data.map(item => item.c);
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: `${label.toUpperCase()} Closing Prices`,
+            data: prices,
+            borderColor: '#007acc',
+            tension: 0.2,
+            fill: false
+          }]
+        },
+        options: {
+          responsive: true
+        }
+      });
+      setTimeout(() => {
+        document.getElementById('chartContainer').style.display = 'block';
+      }, 100);
+    }
+
+    document.getElementById('stockForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const ticker = document.getElementById('tickerInput').value.trim();
+      const days = parseInt(document.getElementById('dayRange').value);
+      const stockData = await fetchStockData(ticker, days);
+      if (stockData.length === 0) {
+        alert("No data found for this ticker.");
+        return;
+      }
+      renderChart(stockData, ticker);
+    });
+
+    async function loadRedditStocks() {
+      const res = await fetch('https://tradestie.com/api/v1/apps/reddit?date=2022-04-03');
+      const data = await res.json();
+      const top5 = data.slice(0, 5);
+      const tbody = document.getElementById('redditBody');
+      top5.forEach(stock => {
+        const row = document.createElement('tr');
+        const icon = stock.sentiment === "Bullish"
+            ? "<img class='sentiment-img' src='bullish.avif' alt='Bullish' />"
+            : "<img class='sentiment-img' src='bearish.jpeg' alt='Bearish' />";
+
+        row.innerHTML = `
+          <td><a href="https://finance.yahoo.com/quote/${stock.ticker}" target="_blank">${stock.ticker}</a></td>
+          <td>${stock.no_of_comments}</td>
+          <td>${stock.sentiment} ${icon}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    loadRedditStocks();
+
+    async function lookupTicker(ticker) {
+      const upperTicker = ticker.toUpperCase();
+      document.getElementById('tickerInput').value = upperTicker;
+      const data = await fetchStockData(upperTicker, 30);
+      if (data.length > 0) {
+        renderChart(data, upperTicker);
+      } else {
+        alert(`No data found for ${upperTicker}`);
+      }
+    }
+
+    if (annyang) {
+      const commands = {
+        'hello': () => alert('Hello World'),
+        'change the color to *color': (color) => {
+          document.body.style.backgroundColor = color;
+        },
+        'navigate to *page': (page) => {
+          const cleaned = page.toLowerCase();
+          if (cleaned.includes('stock')) location.href = 'stocks.html';
+          else if (cleaned.includes('dog')) location.href = 'dogs.html';
+          else if (cleaned.includes('home')) location.href = 'home.html';
+        },
+        'lookup *ticker': lookupTicker,
+        'looking up *ticker': lookupTicker
+      };
+      annyang.addCommands(commands);
+    }
+  </script>
+
+</body>
+</html>
