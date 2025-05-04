@@ -21,7 +21,6 @@
   <button onclick="window.location.href='stocks.html'">Go to Stocks</button>
   <button onclick="window.location.href='dogs.html'">Go to Dogs</button>
 
-  <!-- Audio Instructions Box -->
   <div id="audioBox">
     <h3>🎙 Voice Commands</h3>
     <ul>
@@ -34,7 +33,7 @@
   </div>
   
   <script>
-    // ✅ Use ZenQuotes API (no key needed)
+    // ZenQuotes API (no key needed)
     fetch("https://zenquotes.io/api/random")
       .then(res => res.json())
       .then(data => {
@@ -45,7 +44,7 @@
         document.getElementById("quote").textContent = "Failed to load quote.";
       });
 
-    // ✅ Voice Commands (required on all pages)
+    // Voice Commands
     if (annyang) {
       const commands = {
         'hello': () => alert('Hello World'),
