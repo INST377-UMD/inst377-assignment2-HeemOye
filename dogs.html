@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dogs - Class Activities</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/annyang/2.6.1/annyang.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/simple-slider@1.0.0/simple-slider.min.js"></script>
+  <style>
+    #dogCarousel {
+      width: 90%;
+      margin: 0 auto;
+    }
+    #dogCarousel img {
+      max-height: 300px;
+      border-radius: 10px;
+    }
+    .slider {
+      white-space: nowrap;
+      overflow-x: auto;
+    }
+    .slider img {
+      display: inline-block;
+      margin: 0 5px;
+    }
+    #breedInfo {
+      margin-top: 20px;
+      padding: 20px;
+      background-color: #fff;
+      border: 1px solid #ccc;
+      display: none;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .breed-button {
+      margin: 5px;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 4px;
+      background-color: #28a745;
+      color: white;
+      cursor: pointer;
+    }
+    .breed-button:hover {
+      background-color: #218838;
+    }
+    .sentiment-img {
+      height: 20px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+    <h1>INST377 - Assignment 2 Activities</h1>
+
+  <nav>
+    <a href="home.html">Home</a>
+    <a href="stocks.html">Stocks</a>
+    <a href="dogs.html">Dogs</a>
+  </nav>
+
+  <h1>🐶 Dog Central</h1>
+
+  <div id="dogCarousel" class="slider"></div>
+
+  <h2>Breeds</h2>
+  <div id="breedButtons"></div>
+
+  <div id="breedInfo"></div>
+
+  <div id="audioBox">
+    <h3>🎧 Voice Commands</h3>
+    <ul>
+      <li><strong>"Hello"</strong> – Alerts "Hello World"</li>
+      <li><strong>"Change the color to &lt;color&gt;"</strong> – Changes background color</li>
+      <li><strong>"Navigate to &lt;page&gt;"</strong> – Navigates to selected page</li>
+      <li><strong>"Load dog breed &lt;breed&gt;"</strong> – Loads selected breed info</li>
+    </ul>
+    <button class="audio-button" onclick="annyang.start()">Turn On Audio</button>
+    <button class="audio-button" onclick="annyang.abort()">Turn Off Audio</button>
+  </div>
+
+  <script>
+    const carousel = document.getElementById('dogCarousel');
+    const breedButtons = document.getElementById('breedButtons');
+    const breedInfo = document.getElementById('breedInfo');
+    const displayedBreeds = new Map();
+    let validCount = 0;
+
+    async function loadDogsWithValidBreeds() {
+      const res = await fetch('https://dog.ceo/api/breeds/image/random/30');
+      const data = await res.json();
+      const imageUrls = data.message;
+
+      for (const url of imageUrls) {
+        if (validCount >= 10) break;
+
+        const match = url.match(/breeds\/(.*?)\//);
+        if (!match) continue;
+
+        const rawBreedKey = match[1];
+        const readableName = rawBreedKey.replace(/-/g, ' ');
+
+        if (displayedBreeds.has(readableName)) continue;
+
+        const apiRes = await fetch(`https://api.thedogapi.com/v1/breeds/search?q=${readableName}`);
+        const results = await apiRes.json();
+        const breedData = results[0];
+
+        if (!breedData) continue;
+
+        displayedBreeds.set(readableName, breedData);
+        validCount++;
+
+        const img = document.createElement('img');
+        img.src = url;
+        carousel.appendChild(img);
+
+        const btn = document.createElement('button');
+        btn.classList.add('breed-button');
+        btn.textContent = breedData.name;
+        btn.addEventListener('click', () => showBreed(breedData));
+        breedButtons.appendChild(btn);
+      }
+
+      new SimpleSlider(carousel);
+    }
+
+    function showBreed(breed) {
+  const lifeParts = breed.life_span ? breed.life_span.split(' ') : [];
+  const minLife = lifeParts[0] || 'N/A';
+  const maxLife = lifeParts[2] || 'N/A';
+
+  breedInfo.innerHTML = `
+    <h2>Dog Breed Name</h2>
+    <p>${breed.name}</p>
+    <h3>Dog Breed Description</h3>
+    <p>${breed.bred_for || 'N/A'}</p>
+    <h3>Dog Breed Min Life</h3>
+    <p>${minLife} years</p>
+    <h3>Dog Breed Max Life</h3>
+    <p>${maxLife} years</p>
+  `;
+  breedInfo.style.display = 'block';
+    }
+
+    loadDogsWithValidBreeds();
+
+    if (annyang) {
+      const commands = {
+        'hello': () => alert('Hello World'),
+        'change the color to *color': (color) => {
+          document.body.style.backgroundColor = color;
+        },
+        'navigate to *page': (page) => {
+          const p = page.toLowerCase();
+          if (p.includes('home')) location.href = 'home.html';
+          else if (p.includes('stock')) location.href = 'stocks.html';
+          else if (p.includes('dog')) location.href = 'dogs.html';
+        },
+        'load dog breed *breed': (breedName) => {
+          const match = [...displayedBreeds.values()].find(b =>
+            b && b.name.toLowerCase().includes(breedName.toLowerCase())
+          );
+          if (match) {
+            showBreed(match);
+          } else {
+            alert("Breed not found among the 10 displayed dogs.");
+          }
+        }
+      };
+      annyang.addCommands(commands);
+    }
+  </script>
+
+</body>
+</html>

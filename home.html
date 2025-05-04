@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Home - Class Activities</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/annyang/2.6.1/annyang.min.js"></script>
+</head>
+<body>
+
+    <h1>INST377 - Assignment 2 Activities</h1>
+  <nav>
+    <a href="home.html">Home</a>
+    <a href="stocks.html">Stocks</a>
+    <a href="dogs.html">Dogs</a>
+  </nav>
+
+  <h3>Welcome, Here are Some Different Activities Site to Try!</h3>
+  <p id="quote">Loading quote...</p>
+
+  <button onclick="window.location.href='stocks.html'">Go to Stocks</button>
+  <button onclick="window.location.href='dogs.html'">Go to Dogs</button>
+
+  <div id="audioBox">
+    <h3>🎙 Voice Commands</h3>
+    <ul>
+      <li><strong>"Hello"</strong> – Alerts "Hello World"</li>
+      <li><strong>"Change the color to &lt;color&gt;"</strong> – Changes background color</li>
+      <li><strong>"Navigate to &lt;page&gt;"</strong> – Navigates to selected page</li>
+    </ul>
+    <button class="audio-button" onclick="annyang.start()">Turn On Audio</button>
+    <button class="audio-button" onclick="annyang.abort()">Turn Off Audio</button>
+  </div>
+  
+  <script>
+    // ZenQuotes API (no key needed)
+    fetch("https://zenquotes.io/api/random")
+      .then(res => res.json())
+      .then(data => {
+        const quote = data[0];
+        document.getElementById("quote").textContent = `"${quote.q}" — ${quote.a}`;
+      })
+      .catch(() => {
+        document.getElementById("quote").textContent = "Failed to load quote.";
+      });
+
+    // Voice Commands
+    if (annyang) {
+      const commands = {
+        'hello': () => alert('Hello World'),
+        'change the color to *color': (color) => {
+          document.body.style.backgroundColor = color;
+        },
+        'navigate to *page': (page) => {
+          const cleaned = page.toLowerCase();
+          if (cleaned.includes('home')) window.location.href = 'home.html';
+          else if (cleaned.includes('stock')) window.location.href = 'stocks.html';
+          else if (cleaned.includes('dog')) window.location.href = 'dogs.html';
+          else alert("Page not found.");
+        }
+      };
+      annyang.addCommands(commands);
+    }
+  </script>
+
+</body>
+</html>
